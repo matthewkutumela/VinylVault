@@ -58,5 +58,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.8.4")
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation("androidx.compose.material:material-icons-core:1.7.8")
 
 }
