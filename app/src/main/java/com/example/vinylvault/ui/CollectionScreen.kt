@@ -1,5 +1,6 @@
 package com.example.vinylvault.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun CollectionScreen(vm: VinylViewModel, onAdd: () -> Unit) {
+fun CollectionScreen(vm: VinylViewModel, onAdd: () -> Unit, onOpen: (Int) -> Unit) {
     val records by vm.records.collectAsState()
     val categories by vm.categories.collectAsState()
     var query by remember { mutableStateOf("") }
@@ -64,7 +65,11 @@ fun CollectionScreen(vm: VinylViewModel, onAdd: () -> Unit) {
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(shown, key = { it.id }) { r ->
-                    Card(Modifier.fillMaxWidth()) {
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpen(r.id) }
+                    ) {
                         Column(Modifier.padding(16.dp)) {
                             Text(r.title, style = MaterialTheme.typography.titleMedium)
                             Text(r.artist, style = MaterialTheme.typography.bodyMedium)

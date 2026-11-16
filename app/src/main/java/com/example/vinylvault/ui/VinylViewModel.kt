@@ -61,4 +61,18 @@ class VinylViewModel(app: Application) : AndroidViewModel(app) {
             onDone()
         }
     }
+
+    fun updateRecord(record: VinylRecord, onDone: () -> Unit) {
+        viewModelScope.launch {
+            db.recordDao().update(record)
+            onDone()
+        }
+    }
+
+    fun deleteRecord(record: VinylRecord, onDone: () -> Unit) {
+        viewModelScope.launch {
+            db.recordDao().delete(record)
+            onDone()
+        }
+    }
 }

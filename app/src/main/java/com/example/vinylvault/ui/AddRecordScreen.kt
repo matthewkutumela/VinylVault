@@ -1,6 +1,5 @@
 package com.example.vinylvault.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,14 +45,18 @@ fun formatDate(millis: Long): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddRecordScreen(vm: VinylViewModel, onDone: () -> Unit) {
+fun AddRecordScreen(
+    vm: VinylViewModel,
+    existing: VinylRecord? = null,
+    onDone: () -> Unit
+) {
     val categories by vm.categories.collectAsState()
 
-    var artist by remember { mutableStateOf("") }
-    var title by remember { mutableStateOf("") }
-    var categoryId by remember { mutableStateOf<Int?>(null) }
-    var description by remember { mutableStateOf("") }
-    var dateMillis by remember { mutableStateOf<Long?>(null) }
+    var artist by remember { mutableStateOf(existing?.artist ?: "") }
+    var title by remember { mutableStateOf(existing?.title ?: "") }
+    var categoryId by remember { mutableStateOf(existing?.categoryId) }
+    var description by remember { mutableStateOf(existing?.description ?: "") }
+    var dateText by remember { mutableStateOf(existing?.acquisitionDate) }
     var error by remember { mutableStateOf<String?>(null) }
 
     var menuOpen by remember { mutableStateOf(false) }
@@ -71,7 +74,10 @@ fun AddRecordScreen(vm: VinylViewModel, onDone: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onDone) { Text("< Back") }
             Spacer(Modifier.width(8.dp))
-            Text("Add record", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                if (existing == null) "Add record" else "Edit record",
+                style = MaterialTheme.typography.headlineSmall
+            )
         }
         Spacer(Modifier.height(12.dp))
 
@@ -127,8 +133,7 @@ fun AddRecordScreen(vm: VinylViewModel, onDone: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                dateMillis?.let { "Acquired: " + formatDate(it) }
-                    ?: "Date of acquisition (optional)"
+                dateText?.let { "Acquired: $it" } ?: "Date of acquisition (optional)"
             )
         }
 
@@ -140,27 +145,41 @@ fun AddRecordScreen(vm: VinylViewModel, onDone: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Button(
             onClick = {
+                val chosenCategory = categoryId
                 when {
                     artist.isBlank() -> error = "Please enter the artist."
                     title.isBlank() -> error = "Please enter the album title."
-                    categoryId == null -> error = "Please choose a category."
+                    chosenCategory == null -> error = "Please choose a category."
                     else -> {
                         error = null
-                        vm.addRecord(
-                            VinylRecord(
-                                artist = artist.trim(),
-                                title = title.trim(),
-                                categoryId = categoryId!!,
-                                description = description.trim(),
-                                acquisitionDate = dateMillis?.let { formatDate(it) }
-                            ),
-                            onDone = onDone
-                        )
+                        if (existing == null) {
+                            vm.addRecord(
+                                VinylRecord(
+                                    artist = artist.trim(),
+                                    title = title.trim(),
+                                    categoryId = chosenCategory,
+                                    description = description.trim(),
+                                    acquisitionDate = dateText
+                                ),
+                                onDone = onDone
+                            )
+                        } else {
+                            vm.updateRecord(
+                                existing.copy(
+                                    artist = artist.trim(),
+                                    title = title.trim(),
+                                    categoryId = chosenCategory,
+                                    description = description.trim(),
+                                    acquisitionDate = dateText
+                                ),
+                                onDone = onDone
+                            )
+                        }
                     }
                 }
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Save record") }
+        ) { Text(if (existing == null) "Save record" else "Save changes") }
 
         Spacer(Modifier.height(8.dp))
         Text("* required fields", style = MaterialTheme.typography.bodySmall)
@@ -171,7 +190,7 @@ fun AddRecordScreen(vm: VinylViewModel, onDone: () -> Unit) {
             onDismissRequest = { showPicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    dateMillis = pickerState.selectedDateMillis
+                    pickerState.selectedDateMillis?.let { dateText = formatDate(it) }
                     showPicker = false
                 }) { Text("OK") }
             },
