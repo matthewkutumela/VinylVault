@@ -3,20 +3,40 @@ package com.example.vinylvault
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vinylvault.auth.AuthRepository
+import com.example.vinylvault.ui.AddRecordScreen
 import com.example.vinylvault.ui.CategoriesScreen
+import com.example.vinylvault.ui.CollectionScreen
 import com.example.vinylvault.ui.LoginScreen
 import com.example.vinylvault.ui.RegisterScreen
 import com.example.vinylvault.ui.VinylViewModel
@@ -62,31 +82,32 @@ fun MainScaffold(onLogout: () -> Unit) {
     val vm: VinylViewModel = viewModel()
     var tab by remember { mutableStateOf("home") }
     var showCategories by remember { mutableStateOf(false) }
+    var showAddRecord by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
                     selected = tab == "home",
-                    onClick = { tab = "home"; showCategories = false },
+                    onClick = { tab = "home"; showCategories = false; showAddRecord = false },
                     icon = { Icon(Icons.Filled.Home, contentDescription = null) },
                     label = { Text("Home") }
                 )
                 NavigationBarItem(
                     selected = tab == "collection",
-                    onClick = { tab = "collection" },
+                    onClick = { tab = "collection"; showCategories = false; showAddRecord = false },
                     icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
                     label = { Text("Collection") }
                 )
                 NavigationBarItem(
                     selected = tab == "progress",
-                    onClick = { tab = "progress" },
+                    onClick = { tab = "progress"; showCategories = false; showAddRecord = false },
                     icon = { Icon(Icons.Filled.CheckCircle, contentDescription = null) },
                     label = { Text("Progress") }
                 )
                 NavigationBarItem(
                     selected = tab == "achievements",
-                    onClick = { tab = "achievements" },
+                    onClick = { tab = "achievements"; showCategories = false; showAddRecord = false },
                     icon = { Icon(Icons.Filled.Star, contentDescription = null) },
                     label = { Text("Awards") }
                 )
@@ -94,15 +115,23 @@ fun MainScaffold(onLogout: () -> Unit) {
         }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
-            when {
-                tab == "home" && showCategories ->
+            if (tab == "home") {
+                if (showCategories) {
                     CategoriesScreen(vm = vm, onBack = { showCategories = false })
-                tab == "home" ->
+                } else {
                     HomePlaceholder(
                         onCategories = { showCategories = true },
                         onLogout = onLogout
                     )
-                else -> ComingSoon(tab)
+                }
+            } else if (tab == "collection") {
+                if (showAddRecord) {
+                    AddRecordScreen(vm = vm, onDone = { showAddRecord = false })
+                } else {
+                    CollectionScreen(vm = vm, onAdd = { showAddRecord = true })
+                }
+            } else {
+                ComingSoon(tab)
             }
         }
     }
