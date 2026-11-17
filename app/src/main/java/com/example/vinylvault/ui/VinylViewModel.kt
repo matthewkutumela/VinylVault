@@ -1,6 +1,7 @@
 package com.example.vinylvault.ui
 
 import android.app.Application
+import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,18 +9,64 @@ import com.example.vinylvault.data.AppDatabase
 import com.example.vinylvault.data.Category
 import com.example.vinylvault.data.CategoryWithCount
 import com.example.vinylvault.data.VinylRecord
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class VinylViewModel(app: Application) : AndroidViewModel(app) {
     private val db = AppDatabase.get(app)
+    private val prefs =
+        app.getSharedPreferences("vinylvault_achievements", Context.MODE_PRIVATE)
 
     val categories = db.categoryDao().getAllWithCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val records = db.recordDao().getAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Achievements the user has unlocked (saved on the phone)
+    private val _unlocked = MutableStateFlow<Set<String>>(
+        prefs.getStringSet("unlocked", emptySet())?.toSet() ?: emptySet()
+    )
+    val unlocked: StateFlow<Set<String>> = _unlocked
+
+    // Achievements just earned, waiting to be shown in a congratulation message
+    private val _celebration = MutableStateFlow<List<Achievement>>(emptyList())
+    val celebration: StateFlow<List<Achievement>> = _celebration
+
+    init {
+        viewModelScope.launch {
+            var firstCheck = true
+            combine(
+                db.recordDao().getAll(),
+                db.categoryDao().getAllWithCount()
+            ) { recordList, categoryList ->
+                earnedIds(
+                    recordCount = recordList.size,
+                    anyGoalComplete = categoryList.any { it.owned >= it.goal }
+                )
+            }.collect { earned ->
+                val newOnes = earned - _unlocked.value
+                if (newOnes.isNotEmpty()) {
+                    val all = _unlocked.value + newOnes
+                    prefs.edit().putStringSet("unlocked", all).apply()
+                    _unlocked.value = all
+                    // The first check only catches up silently when the app opens
+                    if (!firstCheck) {
+                        _celebration.value = ALL_ACHIEVEMENTS.filter { it.id in newOnes }
+                    }
+                }
+                firstCheck = false
+            }
+        }
+    }
+
+    fun dismissCelebration() {
+        _celebration.value = emptyList()
+    }
 
     // onResult gets null on success, or an error message
     fun addCategory(name: String, goal: Int, onResult: (String?) -> Unit) {
