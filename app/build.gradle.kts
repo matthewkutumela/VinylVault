@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     testImplementation(libs.junit)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
@@ -60,5 +61,6 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation("androidx.compose.material:material-icons-core:1.7.8")
+    implementation(libs.play.services.code.scanner)
 
 }

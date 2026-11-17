@@ -1,5 +1,7 @@
 package com.example.vinylvault.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,11 +30,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.vinylvault.data.VinylRecord
+import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
@@ -50,6 +57,8 @@ fun AddRecordScreen(
     existing: VinylRecord? = null,
     onDone: () -> Unit
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val categories by vm.categories.collectAsState()
 
     var artist by remember { mutableStateOf(existing?.artist ?: "") }
@@ -58,6 +67,23 @@ fun AddRecordScreen(
     var description by remember { mutableStateOf(existing?.description ?: "") }
     var dateText by remember { mutableStateOf(existing?.acquisitionDate) }
     var error by remember { mutableStateOf<String?>(null) }
+
+    var scanning by remember { mutableStateOf(false) }
+    var scanNote by remember { mutableStateOf<String?>(null) }
+
+    // Photo state. rememberSaveable keeps it if the camera app closes ours in the background.
+    var photoPath by rememberSaveable { mutableStateOf(existing?.photoPath) }
+    var pendingPath by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        val pending = pendingPath
+        if (pending != null) {
+            if (success) photoPath = pending else File(pending).delete()
+        }
+        pendingPath = null
+    }
 
     var menuOpen by remember { mutableStateOf(false) }
     var showPicker by remember { mutableStateOf(false) }
@@ -78,6 +104,45 @@ fun AddRecordScreen(
                 if (existing == null) "Add record" else "Edit record",
                 style = MaterialTheme.typography.headlineSmall
             )
+        }
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = {
+                error = null
+                scanNote = null
+                startScan(
+                    context = context,
+                    onText = { raw ->
+                        scanning = true
+                        scope.launch {
+                            val result = interpretScan(raw)
+                            result.artist?.takeIf { it.isNotBlank() }?.let { artist = it }
+                            result.title?.takeIf { it.isNotBlank() }?.let { title = it }
+                            if (result.artist == null && result.title == null &&
+                                result.message?.startsWith("Scanned text") == true &&
+                                description.isBlank()
+                            ) {
+                                description = result.raw
+                            }
+                            scanNote = if (result.artist != null && result.title != null) {
+                                "Filled in from the scan. Please check the details before saving."
+                            } else {
+                                result.message
+                            }
+                            scanning = false
+                        }
+                    },
+                    onError = { message -> error = message }
+                )
+            },
+            enabled = !scanning,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (scanning) "Looking up..." else "Scan QR code or barcode") }
+
+        scanNote?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it, style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.height(12.dp))
 
@@ -136,6 +201,27 @@ fun AddRecordScreen(
                 dateText?.let { "Acquired: $it" } ?: "Date of acquisition (optional)"
             )
         }
+        Spacer(Modifier.height(12.dp))
+
+        if (photoPath != null) {
+            PhotoImage(
+                path = photoPath,
+                modifier = Modifier.fillMaxWidth().height(220.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+        OutlinedButton(
+            onClick = {
+                try {
+                    val file = createPhotoFile(context)
+                    pendingPath = file.absolutePath
+                    cameraLauncher.launch(photoUri(context, file))
+                } catch (e: Exception) {
+                    error = "Could not open the camera on this device."
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (photoPath == null) "Take photo of record" else "Retake photo") }
 
         error?.let {
             Spacer(Modifier.height(12.dp))
@@ -159,7 +245,8 @@ fun AddRecordScreen(
                                     title = title.trim(),
                                     categoryId = chosenCategory,
                                     description = description.trim(),
-                                    acquisitionDate = dateText
+                                    acquisitionDate = dateText,
+                                    photoPath = photoPath
                                 ),
                                 onDone = onDone
                             )
@@ -170,7 +257,8 @@ fun AddRecordScreen(
                                     title = title.trim(),
                                     categoryId = chosenCategory,
                                     description = description.trim(),
-                                    acquisitionDate = dateText
+                                    acquisitionDate = dateText,
+                                    photoPath = photoPath
                                 ),
                                 onDone = onDone
                             )

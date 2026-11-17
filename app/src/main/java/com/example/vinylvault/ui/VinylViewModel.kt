@@ -72,6 +72,7 @@ class VinylViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteRecord(record: VinylRecord, onDone: () -> Unit) {
         viewModelScope.launch {
             db.recordDao().delete(record)
+            record.photoPath?.let { java.io.File(it).delete() }
             onDone()
         }
     }
