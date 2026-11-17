@@ -4,11 +4,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -70,15 +73,26 @@ fun CollectionScreen(vm: VinylViewModel, onAdd: () -> Unit, onOpen: (Int) -> Uni
                             .fillMaxWidth()
                             .clickable { onOpen(r.id) }
                     ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(r.title, style = MaterialTheme.typography.titleMedium)
-                            Text(r.artist, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                "Category: " + (categoryNames[r.categoryId] ?: "-"),
-                                style = MaterialTheme.typography.bodySmall
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            PhotoImage(
+                                path = r.photoPath,
+                                modifier = Modifier.size(72.dp),
+                                maxSize = 200
                             )
-                            r.acquisitionDate?.let {
-                                Text("Acquired: $it", style = MaterialTheme.typography.bodySmall)
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(r.title, style = MaterialTheme.typography.titleMedium)
+                                Text(r.artist, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    "Category: " + (categoryNames[r.categoryId] ?: "-"),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                r.acquisitionDate?.let {
+                                    Text("Acquired: $it", style = MaterialTheme.typography.bodySmall)
+                                }
                             }
                         }
                     }

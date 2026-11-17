@@ -3,24 +3,17 @@ package com.example.vinylvault
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,13 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vinylvault.auth.AuthRepository
 import com.example.vinylvault.ui.AddRecordScreen
 import com.example.vinylvault.ui.CategoriesScreen
 import com.example.vinylvault.ui.CollectionScreen
+import com.example.vinylvault.ui.HomeScreen
 import com.example.vinylvault.ui.LoginScreen
+import com.example.vinylvault.ui.ProgressScreen
 import com.example.vinylvault.ui.RecordDetailScreen
 import com.example.vinylvault.ui.RegisterScreen
 import com.example.vinylvault.ui.VinylViewModel
@@ -133,8 +127,10 @@ fun MainScaffold(onLogout: () -> Unit) {
                 if (showCategories) {
                     CategoriesScreen(vm = vm, onBack = { showCategories = false })
                 } else {
-                    HomePlaceholder(
+                    HomeScreen(
+                        vm = vm,
                         onCategories = { showCategories = true },
+                        onAddRecord = { tab = "collection"; collectionScreen = "add" },
                         onLogout = onLogout
                     )
                 }
@@ -168,29 +164,12 @@ fun MainScaffold(onLogout: () -> Unit) {
                         onOpen = { id -> selectedId = id; collectionScreen = "detail" }
                     )
                 }
+            } else if (tab == "progress") {
+                ProgressScreen(vm = vm)
             } else {
                 ComingSoon(tab)
             }
         }
-    }
-}
-
-// Temporary screen. We replace it with the real Home screen later.
-@Composable
-fun HomePlaceholder(onCategories: () -> Unit, onLogout: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            "Welcome, ${AuthRepository.username()}!",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = onCategories) { Text("Manage categories") }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onLogout) { Text("Log out") }
     }
 }
 
